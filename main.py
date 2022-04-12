@@ -1,3 +1,5 @@
+from cgi import print_directory
+import re
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
@@ -216,48 +218,44 @@ while cap.isOpened():
     result = cv2.addWeighted(out_img, 0.5, window_img, 0.3, 0)
     M_res, Minv_res = perspectiveTransform( dst,src)
     re_image = warpPerspective(result.astype(np.float32), size, M_res)
-    
-    warped_image = cv2.cvtColor(warped_image,cv2.COLOR_GRAY2RGB)
-    test_image = cv2.cvtColor(re_image,cv2.COLOR_RGB2HLS)
-    hls_image[:,:,2] = test_image[:,:,2]
-    final_image = cv2.cvtColor(hls_image,cv2.COLOR_HLS2RGB)
 
-    # plt.show()
-    # numpy_horizontal_concat = np.concatenate([re_image, final_image], axis=1,)
-    # final_image[0:128, 872:1000] = re_image  # copy img onto upper left frame
-    # cv2.imshow('screen', re_image)
-    
-    imstack = cv2.resize(image,(1000,800))
-    im1 = cv2.resize(warped_image,(1000,800))
-    im2 = cv2.resize(re_image ,(1000,800))
-    im3 = cv2.resize(final_image ,(1000,800))
-    
-    imstack = np.hstack((im2,im1))
-
-    cv2.imshow('frame', final_image)
-
-    img_array.append(final_image)
-    (h, w) = final_image.shape[:2]
-    sizeee_ = (h, w)
+    warped_image = cv2.cvtColor(warped_image, cv2.COLOR_GRAY2RGB)
+    cannyed_image = cv2.cvtColor(cannyed_image, cv2.COLOR_GRAY2RGB)
+    cropped_image = cv2.cvtColor(cropped_image, cv2.COLOR_GRAY2RGB)
+    threshInv = cv2.cvtColor(threshInv, cv2.COLOR_GRAY2RGB)
 
     deviation,direction = Difference(left_fitx, right_fitx, width)
-    re_image = addText(re_image , deviation,direction)
+    image = addText(image , deviation,direction)
+
+    # Draw the result on the base image
+    image = image.astype('uint8') + re_image.astype('uint8')
+
+    # stack images
+    scale = 0.5
     
+    image = cv2.resize(image.astype('uint8'), (0,0), None, scale, scale)
+    warped_image = cv2.resize(warped_image.astype('uint8'), (0,0), None, scale, scale)
+    re_image = cv2.resize(re_image.astype('uint8') ,(0,0), None, scale, scale)
+    cannyed_image = cv2.resize(cannyed_image.astype('uint8') ,(0,0), None, scale, scale)
+    cropped_image = cv2.resize(cropped_image.astype('uint8') ,(0,0), None, scale, scale)
+    threshInv = cv2.resize(threshInv.astype('uint8') ,(0,0), None, scale, scale)
     
-    # final_image = addText(final_image , 5,"left")
-    # cv2.imshow('frame', final_image)
-    # cv2.imshow('frame', re_image)
-    # cv2.waitKey()
+    hor1 = np.hstack((image, re_image))
+    hor2 = np.hstack((warped_image, cropped_image))
+    vir = np.vstack((hor1, hor2))
+
+    cv2.imshow('frame', vir)
+
+    img_array.append(vir)
 
     if cv2.waitKey(60) & 0xFF == ord('q'):
         break
 
+# Save video
 fourcc = cv2.VideoWriter_fourcc('M', 'P', '4', 'V')
-out = cv2.VideoWriter('out.mp4', fourcc, 25, (w, h), isColor=True)
+out = cv2.VideoWriter('out.mp4', fourcc, 25, (width, height), isColor=True)
 
 for img in img_array:
     out.write(img)
 
 out.release()
-# image = cv2.imread('test_image/solidYellowCurve.jpg')
-# image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
