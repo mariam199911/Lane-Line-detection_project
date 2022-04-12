@@ -2,6 +2,27 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import math
+import glob
+
+
+# def Difference (left_fitx, right_fitx, width):
+#     mean = (right_fitx[0][0][0] - left_fitx[0][0][0])/2
+#     diff = (width/2 - mean)*0.0002645833
+#     if (diff > 0) :
+#         direction = "right"
+#     else :
+#         direction = "left"
+#     return diff , direction
+
+def Difference (left_fitx, right_fitx, width):
+    xm_per_pix = 3.7 / 720
+    mean_x = np.mean((left_fitx, right_fitx), axis=0)
+    pts_mean = np.array([np.flipud(np.transpose(np.vstack([mean_x, ploty])))])
+    mpts = pts_mean[-1][-1][-2].astype(int)
+    pixelDeviation =width / 2 - abs(mpts)
+    deviation = pixelDeviation * xm_per_pix
+    direction = "left" if deviation < 0 else "right"
+    return deviation,direction
 
 def region_of_interest(img, vertices):
     mask = np.zeros_like(img)
@@ -10,7 +31,7 @@ def region_of_interest(img, vertices):
     cv2.fillPoly(mask, vertices, match_mask_color)
     masked_image = cv2.bitwise_and(img, mask)
     return masked_image
-
+    
     
 def addText(img, deviation,devDirection):
 
@@ -38,9 +59,13 @@ def warpPerspective(img, imgSize, M):
     return cv2.warpPerspective(img, M, imgSize, cv2.INTER_LINEAR)
 
 
-cap = cv2.VideoCapture('test_video/challenge.mp4')            
+cap = cv2.VideoCapture('test_video/challenge.mp4')
+img_array = []
 while cap.isOpened():
     ret, image = cap.read()
+
+    if image is None:
+        break
 
     height = image.shape[0]
     width = image.shape[1]
@@ -192,21 +217,47 @@ while cap.isOpened():
     M_res, Minv_res = perspectiveTransform( dst,src)
     re_image = warpPerspective(result.astype(np.float32), size, M_res)
     
+    warped_image = cv2.cvtColor(warped_image,cv2.COLOR_GRAY2RGB)
     test_image = cv2.cvtColor(re_image,cv2.COLOR_RGB2HLS)
     hls_image[:,:,2] = test_image[:,:,2]
     final_image = cv2.cvtColor(hls_image,cv2.COLOR_HLS2RGB)
+
     # plt.show()
     # numpy_horizontal_concat = np.concatenate([re_image, final_image], axis=1,)
     # final_image[0:128, 872:1000] = re_image  # copy img onto upper left frame
     # cv2.imshow('screen', re_image)
     
-    final_image = addText(final_image , 5,"left")
+    imstack = cv2.resize(image,(1000,800))
+    im1 = cv2.resize(warped_image,(1000,800))
+    im2 = cv2.resize(re_image ,(1000,800))
+    im3 = cv2.resize(final_image ,(1000,800))
+    
+    imstack = np.hstack((im2,im1))
+
     cv2.imshow('frame', final_image)
+
+    img_array.append(final_image)
+    (h, w) = final_image.shape[:2]
+    sizeee_ = (h, w)
+
+    deviation,direction = Difference(left_fitx, right_fitx, width)
+    re_image = addText(re_image , deviation,direction)
+    
+    
+    # final_image = addText(final_image , 5,"left")
+    # cv2.imshow('frame', final_image)
     # cv2.imshow('frame', re_image)
     # cv2.waitKey()
+
     if cv2.waitKey(60) & 0xFF == ord('q'):
         break
 
+fourcc = cv2.VideoWriter_fourcc('M', 'P', '4', 'V')
+out = cv2.VideoWriter('out.mp4', fourcc, 25, (w, h), isColor=True)
 
+for img in img_array:
+    out.write(img)
+
+out.release()
 # image = cv2.imread('test_image/solidYellowCurve.jpg')
 # image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
