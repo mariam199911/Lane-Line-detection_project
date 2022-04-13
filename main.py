@@ -61,7 +61,7 @@ def warpPerspective(img, imgSize, M):
     return cv2.warpPerspective(img, M, imgSize, cv2.INTER_LINEAR)
 
 
-cap = cv2.VideoCapture('test_video/challenge_video.mp4')
+cap = cv2.VideoCapture('test_video/challenge.mp4')
 img_array = []
 while cap.isOpened():
     ret, image = cap.read()
