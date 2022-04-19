@@ -128,8 +128,8 @@ def get_measurements(img, leftx, rightx):
 def sliding_window(warped_image, width, height):
     global leftY, leftX
 
-    leftx_base = 250
-    rightx_base = 950
+    leftx_base = 200
+    rightx_base = 1000
 
     # Convert binary image to RGB image to draw on it.
     out_img = cv2.cvtColor(warped_image, cv2.COLOR_GRAY2RGB)
@@ -291,7 +291,6 @@ def process_video(in_path, out_path, debug):
             result = debug_output(result, edges, cropped_image, warped_image, window_img, inv_warp)
             result = cv2.resize(result, (0, 0), None, width / result.shape[1], height / result.shape[0])
         img_array.append(result)
-
         if cv2.waitKey(60) & 0xFF == ord('q'):
             break
 
@@ -348,7 +347,6 @@ def main():
         in_path = str(args[2])
         out_path = str(args[3])
         debug_mode = int(args[4])
-        print(debug_mode, type(debug_mode))
         debug = False
 
         # check if the input directory exists or not
