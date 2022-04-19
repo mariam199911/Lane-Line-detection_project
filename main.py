@@ -364,7 +364,7 @@ def main():
             os.mkdir(out_dir)
             print(f"{out_dir} is created.")
             
-        if debug_mode == 'y' or debug_mode == 'yes' or debug_mode == 'Y' or debug_mode == 'Yes':
+        if debug_mode == 1:
             debug = True
         
 
