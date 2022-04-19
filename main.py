@@ -347,7 +347,7 @@ def main():
         in_type = str(args[1])
         in_path = str(args[2])
         out_path = str(args[3])
-        debug_mode = str(args[4])
+        debug_mode = args[4]
         debug = False
 
         # check if the input directory exists or not
