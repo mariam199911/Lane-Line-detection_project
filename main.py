@@ -1,9 +1,8 @@
-from operator import inv
-from matplotlib import widgets
+from textwrap import indent
 import numpy as np
 import cv2
-import matplotlib.pyplot as plt
 import sys
+import os
 
 def get_edges(img):
     """
@@ -91,7 +90,7 @@ def perspectiveTransform():
 def warpPerspective(img, imgSize, M):
     return cv2.warpPerspective(img, M, imgSize, cv2.INTER_LINEAR)
 
-def get_measurments(img, leftx, rightx):
+def get_measurements(img, leftx, rightx):
     # Generate y values for plotting
     ploty = np.linspace(0, img.shape[0]-1, img.shape[0])
     y_eval = np.max(ploty)
@@ -129,8 +128,8 @@ def get_measurments(img, leftx, rightx):
 def sliding_window(warped_image, width, height):
     global leftY, leftX
 
-    leftx_base = 250
-    rightx_base = 950
+    leftx_base = 200
+    rightx_base = 1000
 
     # Convert binary image to RGB image to draw on it.
     out_img = cv2.cvtColor(warped_image, cv2.COLOR_GRAY2RGB)
@@ -255,7 +254,7 @@ def debug_output(result, edges, cropped_image, warped_image, window_img, inv_war
     
     return vir
 
-def process_video(in_path, debug):
+def process_video(in_path, out_path, debug):
     cap = cv2.VideoCapture(str(in_path))
     img_array = []
     
@@ -284,7 +283,7 @@ def process_video(in_path, debug):
         result = cv2.addWeighted(image, 1, inv_warp, 0.3, 0)
         # result = cv2.bitwise_or(invWarp, image)
 
-        radious_of_curvature, deviation, dir = get_measurments(image, left_fitx, right_fitx)
+        radious_of_curvature, deviation, dir = get_measurements(image, left_fitx, right_fitx)
         
         result = addText(result , radious_of_curvature, deviation, dir)
         
@@ -292,24 +291,20 @@ def process_video(in_path, debug):
             result = debug_output(result, edges, cropped_image, warped_image, window_img, inv_warp)
             result = cv2.resize(result, (0, 0), None, width / result.shape[1], height / result.shape[0])
         img_array.append(result)
-
-        cv2.imshow('frame', result)
-
-
         if cv2.waitKey(60) & 0xFF == ord('q'):
             break
 
 
     # Save video
     fourcc = cv2.VideoWriter_fourcc(*'mp4v') 
-    out = cv2.VideoWriter('out.mp4', fourcc, 25, (width, height), isColor=True)
+    out = cv2.VideoWriter(f'{out_path}', fourcc, 25, (width, height), isColor=True)
 
     for img in img_array:
         out.write(img)
 
     out.release()
 
-def process_image(in_path, debug):
+def process_image(in_path, out_path, debug):
     image = cv2.imread(str(in_path))
 
     height = image.shape[0]
@@ -330,47 +325,62 @@ def process_image(in_path, debug):
     result = cv2.addWeighted(image, 1, inv_warp, 0.3, 0)
     # result = cv2.bitwise_or(invWarp, image)
 
-    radious_of_curvature, deviation, dir = get_measurments(image, left_fitx, right_fitx)
+    radious_of_curvature, deviation, dir = get_measurements(image, left_fitx, right_fitx)
     
     result = addText(result , radious_of_curvature, deviation, dir)
     
     if debug:
         result = debug_output(result, edges, cropped_image, warped_image, window_img, inv_warp)
         result = cv2.resize(result, (0, 0), None, width / result.shape[1], height / result.shape[0])
-        
-    # cv2.imshow('frame', result)
-    # cv2.waitKey()
 
     # Save image
-    cv2.imwrite('out.jpg', result)
+    cv2.imwrite(f'{out_path}', result)
 
 # Global variables
 leftY = []
 leftX = []
 
-if __name__ == '__main__':
+def main():
     args = sys.argv
     try:
         in_type = str(args[1])
-        in_path = args[2]
+        in_path = str(args[2])
+        out_path = str(args[3])
+        debug_mode = int(args[4])
         debug = False
 
-        if len(args) > 3 and str(args[3] == 'debug'):
-            debug = True
+        # check if the input directory exists or not
+        (in_dir, in_file) = os.path.split(in_path)
+        in_dir = os.path.relpath(in_dir)
+        if not os.path.exists(in_dir):
+            print(f"{in_dir} is not found.")
+            return
 
-        if in_type == 'video':
+        # check if the output directory exists or create new one
+        (out_dir, out_file) = os.path.split(out_path)
+        out_dir = os.path.relpath(out_dir)
+        if len(out_dir) > 0 and not os.path.exists(out_dir):
+            os.mkdir(out_dir)
+            print(f"{out_dir} is created.")
+            
+        if debug_mode == 1:
+            debug = True
+        
+
+        if in_type == 'v' or in_type == 'video' or in_type == 'V' or in_type == 'Video':
             print('Processing video......')
-            process_video(in_path, debug)
-            print('Processing done, please check out.mp4')
-        elif in_type == 'image':
+            process_video(in_path, out_path, debug)
+        elif in_type == 'i' or in_type == 'image' or in_type == 'I' or in_type == 'Image':
             print('Processing image......')
-            process_image(in_path, debug)
-            print('Processing done, please check out.jpg')
+            process_image(in_path, out_path, debug)
         else:
-            print('Provide correct input type')
+            print('Incorrect input type')
+            return
+        print(f'Processing done, please check {out_path}')
 
     except IndexError:
-        print('Not enough args')
-    
-    
-    
+        print('Incorrect args')
+        return
+
+if __name__ == '__main__':
+    main()
