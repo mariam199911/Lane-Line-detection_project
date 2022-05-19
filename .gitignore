@@ -1,2 +1,6 @@
 test
-out.mp4
+*.mp4
+*.jpg
+non-vehicles
+vehicles
+__pycache__
