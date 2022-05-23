@@ -178,21 +178,16 @@ def find_vehicles(image):
 
     return result
 
-def process_video(in_path, out_path, debug):
-    # detection_info = DetectionInfo()
-
+def process_video(in_path, out_path):
+    # process video
     project_video = VideoFileClip(in_path)
     white_clip = project_video.fl_image(find_vehicles)
     white_clip.write_videofile(out_path, audio=False, fps=20)
 
-def process_image(in_path, out_path, debug):
-    # detection_info = DetectionInfo()
-
+def process_image(in_path, out_path):
     # process image
     image = cv2.imread(in_path)
-
     result = find_vehicles(image)
-
     # Save image
     cv2.imwrite(f'{out_path}', result)
     
@@ -203,8 +198,6 @@ def main():
         in_type = str(args[1])
         in_path = str(args[2])
         out_path = str(args[3])
-        debug_mode = int(args[4])
-        debug = False
 
         # check if the input directory exists or not
         (in_dir, in_file) = os.path.split(in_path)
@@ -220,19 +213,16 @@ def main():
             os.mkdir(out_dir)
             print(f"{out_dir} is created.")
             
-        if debug_mode == 1:
-            debug = True
-        
         # load the model
         data_file = 'svc_pickle.sav'
         load(data_file)
         
         if in_type == 'v' or in_type == 'video' or in_type == 'V' or in_type == 'Video':
             print('Processing video......')
-            process_video(in_path, out_path, debug)
+            process_video(in_path, out_path)
         elif in_type == 'i' or in_type == 'image' or in_type == 'I' or in_type == 'Image':
             print('Processing image......')
-            process_image(in_path, out_path, debug)
+            process_image(in_path, out_path)
         else:
             print('Incorrect input type')
             return
