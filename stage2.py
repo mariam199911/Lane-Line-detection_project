@@ -6,6 +6,7 @@ from scipy.ndimage import label
 from moviepy.editor import VideoFileClip
 import os
 import sys
+import queue
 
 def convert_color(img, conv='RGB2YCrCb'):
     """
@@ -165,6 +166,46 @@ def draw_labeled_bboxes(img, labels):
     # Return the image
     return result_rectangles, img_copy
 
+class DetectionInfo():
+    def __init__(self):
+        test_image = cv2.imread('./test_images/test1.jpg')
+        self.test_image = cv2.cvtColor(test_image,cv2.COLOR_BGR2RGB)
+        self.max_size = 10
+        self.old_bboxes = queue.Queue(self.max_size) 
+        self.heatmap = np.zeros_like(self.test_image[:, :, 0])
+        
+    def get_heatmap(self):
+        self.heatmap = np.zeros_like(self.test_image[:, :, 0])
+        if self.old_bboxes.qsize() == self.max_size:
+            for bboxes in list(self.old_bboxes.queue):
+                self.heatmap = add_heat(self.heatmap, bboxes)
+            self.heatmap = apply_threshold(self.heatmap, 20)
+        return self.heatmap
+    
+    def get_labels(self):
+        return label(self.get_heatmap())
+        
+    def add_bboxes(self, bboxes):
+        if len(bboxes) < 1:
+            return
+        if self.old_bboxes.qsize() == self.max_size:
+            self.old_bboxes.get()
+        self.old_bboxes.put(bboxes)
+
+
+def find_vehicles_video(image):
+    global detection_info
+    bboxes = get_rectangles(image) 
+    detection_info.add_bboxes(bboxes)
+    labels = detection_info.get_labels()
+    if len(labels) == 0:
+        result_image = image
+    else:
+        bboxes, result_image = draw_labeled_bboxes(image,labels)
+
+    return result_image 
+
+
 def find_vehicles(image):
     rectangles = get_rectangles(image)
     if not rectangles or len(rectangles) == 0:
@@ -180,9 +221,11 @@ def find_vehicles(image):
 
 def process_video(in_path, out_path):
     # process video
+    global detection_info
+    detection_info = DetectionInfo() 
     project_video = VideoFileClip(in_path)
-    white_clip = project_video.fl_image(find_vehicles)
-    white_clip.write_videofile(out_path, audio=False, fps=20)
+    white_clip = project_video.fl_image(find_vehicles_video)
+    white_clip.write_videofile(out_path, audio=False)
 
 def process_image(in_path, out_path):
     # process image
